@@ -6,12 +6,8 @@
 package utils;
 
 import file.BedAbstract;
-import htsjdk.samtools.reference.FastaSequenceFile;
-import htsjdk.samtools.reference.FastaSequenceIndex;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -63,11 +59,8 @@ public class AGPToFasta {
         log.log(Level.INFO, "Loaded: " + this.AGPEntries.keySet().size() + "AGP chromosomes");
         
         try(BufferedWriter output = Files.newBufferedWriter(Paths.get(outputFasta), Charset.defaultCharset())){
-            FastaSequenceIndex index = new FastaSequenceIndex(new File(this.fastaFile + ".fai"));
-            IndexedFastaSequenceFile reader = new IndexedFastaSequenceFile(this.fastaFile, index);
-            
-            IndexedFastaReader dictionary = new IndexedFastaReader(this.fastaFile);
-            
+
+            IndexedFastaReader reader = new IndexedFastaReader(this.fastaFile);
             
             // Extract the ordered list of chromosomes (numerically)
             List<String> orderedChrs = this.AGPEntries.keySet().stream().collect(Collectors.toList());
@@ -79,34 +72,27 @@ public class AGPToFasta {
             });
             
             orderedChrs.stream().forEach((s) -> {
-                List<Byte> seq = new ArrayList<>();
+                List<Character> seq = new ArrayList<>();
                 for(AGPEntry b : this.AGPEntries.get(s)){
                     if(b.isGap){
-                        // It's super messy and really silly, but the HTSJDK guys use it
-                        byte[] gap = new byte[b.getGapLen()];
-                        StringBuilder sb = new StringBuilder();
                         for(int x = 0; x < b.getGapLen(); x++){
-                            sb.append("N");
+                            seq.add('N');
                         }
-                        sb.toString().getBytes(0, gap.length, gap, 0);
-                        List<Byte> temp = new ArrayList<>(gap.length);
-                        for(byte t : gap)
-                            temp.add(t);
-                        seq.addAll(temp);
                     }else{
-                        if(b.End() > dictionary.getChrLen(b.Chr())){
-                            b.setEnd((int)dictionary.getChrLen(b.Chr()));
+                        if(b.End() > reader.getChrLen(b.Chr())){
+                            b.setEnd((int)reader.getChrLen(b.Chr()));
                             log.log(Level.WARNING, "Chr lengths for " + b.Chr() + " exceeded expected length, set value to: " + b.End());
                         }
-                        byte[] temp = reader.getSubsequenceAt(b.Chr(), b.Start(), b.End()).getBases();
+                        List<Character> temp; 
                         log.log(Level.INFO, "[AGPSUB] Pulling subsection of chr " + s + "\t" + b.Chr() + ":" + b.Start() + "-" + b.End() 
                                 + " at current byte count: " + seq.size());
                         if(b.orient == ORIENT.REV){
-                            temp = getRevComp(temp);
+                            temp = reader.getRevSeq(b.Chr(), b.Start(), b.End());
+                        }else{
+                            temp = reader.getForwardSeq(b.Chr(), b.Start(), b.End());
                         }
                         
-                        for(byte t : temp)
-                            seq.add(t);
+                        seq.addAll(temp);
                     }
                 }
                 // Now that the whole chromosome is in memory, print it out in an ordered fashion

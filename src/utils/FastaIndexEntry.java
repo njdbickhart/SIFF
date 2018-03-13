@@ -17,23 +17,27 @@ public class FastaIndexEntry {
     public final long totLen;
     public boolean isModified = false;
     
-    public FastaIndexEntry(String line){
-        line = line.trim();
-        String[] segs = line.split("\t");
-        
-        name = segs[0];
-        length = Long.parseLong(segs[1]);
-        startByte = Long.parseLong(segs[2]);
-        lineLen = Long.parseLong(segs[3]);
-        totLen = Long.parseLong(segs[4]);
-    }
-    
     public FastaIndexEntry(String name, long length, long startByte, long lineLen, long totLen){
         this.name = name;
         this.length = length;
         this.startByte = startByte;
         this.lineLen = lineLen;
         this.totLen = totLen;
+    }
+    
+    public FastaIndexEntry(String line){
+        line = line.trim();
+        String[] segs = line.split("\t");
+        
+        this.name = segs[0];
+        this.length = Long.parseLong(segs[1]);
+        this.startByte = Long.parseLong(segs[2]);
+        this.lineLen = Long.parseLong(segs[3]);
+        this.totLen = Long.parseLong(segs[4]);
+    }
+    
+    public long GetStartByte(){
+        return this.startByte;
     }
     
     public String getName(){
