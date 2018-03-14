@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package siff;
+package utils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,10 +62,9 @@ public class StatContainer {
         if(sum.isEmpty()){
             return 0.0d;
         }
-        double s = 0.0d;
-        for(int d : sum){
-            s += d;
-        }
+        double s = (double) sum.stream()
+                .map(i -> i)
+                .reduce(0, (a, b) -> a + b);
         return s / (double) sum.size();
     }
     
