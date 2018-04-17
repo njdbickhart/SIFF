@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,7 +49,7 @@ public class IndexedFastaReader {
             System.exit(-1);
         }
         if(!index.canRead()){
-            log.log(Level.SEVERE, "Could not find fasta index file for: " + Input.toString() + "! Attempting to generate one now...");
+            log.log(Level.WARNING, "Could not find fasta index file for: " + Input.toString() + "! Attempting to generate one now...");
             GenerateIndex(this.Input, index);
         }else{        
             try(BufferedReader input = Files.newBufferedReader(Paths.get(index.toURI()), Charset.defaultCharset())){
@@ -71,11 +72,13 @@ public class IndexedFastaReader {
     }
     
     public int GenerateIndex(Path Input, File index){
-        long len = 0, lineLen = -1, lineBpLen = -1; 
+        long len = 0, lineLen = -1, lineBpLen = -1, charlen = 0; 
         long offset = 0;
         String contig = null;
         FaiState state = FaiState.START;
         final String nl = System.lineSeparator();
+        
+        this.indexMap = new HashMap<>();
         try(BufferedReader input = Files.newBufferedReader(Input, Charset.defaultCharset())){
             String line = null;
             while((line = input.readLine()) != null){
@@ -92,7 +95,7 @@ public class IndexedFastaReader {
                 }
                 
                 if(line.startsWith(">")){
-                    if(state == FaiState.CHRCOUNT){
+                    if(state == FaiState.CHRCOUNT || state == FaiState.BCONSISTENCY || state == FaiState.LCONSISTENCY){
                         FastaIndexEntry temp = new FastaIndexEntry(contig, len, offset, lineBpLen, lineLen);
                         if(this.indexMap.containsKey(contig))
                             log.log(Level.WARNING, "Warning! Ignoring duplicate fasta entry: " + contig);
@@ -102,7 +105,8 @@ public class IndexedFastaReader {
                         }
                     }else if(state == FaiState.CHRINTERNAL)
                         IndexFailure("Error! Encounted a Fasta index entry of zero length: " + contig);
-                    offset += len + line.length();
+                    charlen += line.length() + nl.length();
+                    offset = charlen;
                     String[] segs = line.trim().split("\\s+");
                     contig = segs[0].replaceFirst(">", "");
                     state = FaiState.CHRINTERNAL;
@@ -111,9 +115,10 @@ public class IndexedFastaReader {
                     IndexFailure("Error! Did not encounter a valid fasta header sequence! The first line consisted of: " + line);
                 else if(state == FaiState.CHRINTERNAL){
                     // We need to calculate the lineLen and lineBpLen for this chromosome
-                    lineLen = line.length();
-                    lineBpLen = line.trim().length();
+                    lineLen = line.length() + nl.length();
+                    lineBpLen = line.length();
                     len += lineBpLen;
+                    charlen += lineLen;
                     state = FaiState.CHRCOUNT;
                 }else if(state == FaiState.PREVSPACE){
                     // Encountered a space and then a non-fasta entry
@@ -122,10 +127,9 @@ public class IndexedFastaReader {
                     IndexFailure("Error! Ran into an inconsistency in Fasta line lengths: " + state.name());
                 else{
                     // Now, we have to be within the CHRCOUNT state
-                    if(line.length() != lineLen)
+                    if(line.length() + nl.length() != lineLen)
                         state = FaiState.LCONSISTENCY;
-                    
-                    line = line.trim();
+                    charlen += line.length() + nl.length();
                     if(line.length() != lineBpLen)
                         state = FaiState.BCONSISTENCY;
                     len += line.length();
@@ -172,6 +176,7 @@ public class IndexedFastaReader {
     public void LoadEntry(String chr, long start, long end){
         // Empty previous container
         this.seq.clear();
+        start--; // Take care of 1 base sequence lookup
         
         // Check validity of search
         FastaIndexEntry entry = this.indexMap.get(chr);
@@ -209,7 +214,21 @@ public class IndexedFastaReader {
     }
     
     private boolean isBase(byte b){
-        return (b != System.lineSeparator().charAt(0));
+        switch(b){
+            case 'a':
+            case 't':
+            case 'g':
+            case 'c':
+            case 'n':
+            case 'A':
+            case 'T':
+            case 'G':
+            case 'C':
+            case 'N':
+                return true;
+            default:
+                return false;
+        }
     }
     
     public void LoadEntry(String chr){
@@ -272,15 +291,20 @@ public class IndexedFastaReader {
     
     public List<Character> getRevSeq(String chr){
         this.LoadEntry(chr);
-        return IntStream.range(this.seq.size() - 1, 0)
+        return this.revRange(0, this.seq.size())
                 .mapToObj(i -> this.comp[this.seq.get(i)])
                 .collect(Collectors.toList());
     }
     
     public List<Character> getRevSeq(String chr, long start, long end){
         this.LoadEntry(chr, start, end);
-        return IntStream.range(this.seq.size() - 1, 0)
+        return this.revRange(0, this.seq.size())
                 .mapToObj(i -> this.comp[this.seq.get(i)])
                 .collect(Collectors.toList());
+    }
+    
+    private IntStream revRange(int from, int to){
+        return IntStream.range(from, to)
+                    .map(i -> to - i + from - 1);
     }
 }
