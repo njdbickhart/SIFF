@@ -176,7 +176,7 @@ public class RearrangementPlan {
                     merged.add(previous);
                 }
                 int sizeDiff = existing.size() - merged.size();
-                log.log(Level.INFO, "[MERGESEGS] Original chr: " + chr + "\tmerged " + sizeDiff + " smallers segments.");
+                log.log(Level.FINE, "[MERGESEGS] Original chr: " + chr + "\tmerged " + sizeDiff + " smallers segments.");
                 this.mergedPlan.put(chr, merged);
             });
         //}
@@ -188,7 +188,7 @@ public class RearrangementPlan {
             long diffChrs = s.getValue().stream()
                     .map(BedFastaPlan::Chr)
                     .count();
-            log.log(Level.INFO, "[MERGESTATS] Original chr: " + chr + "\tsegments: " + num + "\tsegment chr counts: " + diffChrs);
+            log.log(Level.FINE, "[MERGESTATS] Original chr: " + chr + "\tsegments: " + num + "\tsegment chr counts: " + diffChrs);
         });
         
         // Identify unmodified chromosomes
@@ -235,7 +235,7 @@ public class RearrangementPlan {
         
         // Style the points to be a small rectangle
         PointRenderer points = new DefaultPointRenderer2D();
-        points.setShape(new Rectangle2D.Double(-2, -2, 2, 2));
+        points.setShape(new Rectangle2D.Double(-5, -5, 5, 5));
         points.setColor(new LinearGradient(Color.BLUE, Color.CYAN, Color.DARK_GRAY, Color.GRAY, Color.lightGray, Color.GREEN, Color.YELLOW, Color.ORANGE, Color.RED));
         plot.setPointRenderers(data, points);
         

@@ -41,9 +41,13 @@ public class SIFF {
         cmd.AddMode("reorder", 
                 "SIFF reorder:" + nl +
                         "Usage: java -jar SIFF.jar reorder -s [input marker sam file] -j [input jellyfish db] -f [input fasta] -o [output basename]" + nl +
+                        "[MANDATORY]" + nl +
                         "\t-s\tA sam file with ordered map coordinates mapped t the assembly" + nl +
-                        "\t-f\tInput samtools indexed fasta file" + nl+
-                        "\t-o\tOutput file basename" + nl, 
+                        "\t-f\tInput fasta file" + nl+
+                        "\t-o\tOutput file basename" + nl +
+                        "[OPTIONAL]" + nl +
+                        "\t-r\tSegment size filter (remove condensed segments less than this size) [default = 50000 bp]" + nl +
+                        "\t-m\tMismapped marker resolution (removes segments that have less than X number of markers that do not map to this chromosome) [default 5]", 
                 "s:f:o:d|", 
                 "sfo", 
                 "sfod", 

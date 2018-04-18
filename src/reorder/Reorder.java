@@ -18,13 +18,11 @@ public class Reorder {
     private static final Logger log = Logger.getLogger(Reorder.class.getName());
     private final String samFile;
     private final String fastaFile;
-    private final String jellyDB;
     private final String outbase;
     //"sam", "fasta", "jellydb", "output",
     public Reorder(ArrayModeCmdLineParser cmd){
         this.samFile = cmd.GetValue("sam");
         this.fastaFile = cmd.GetValue("fasta");
-        this.jellyDB = cmd.GetValue("jellydb");
         this.outbase = cmd.GetValue("output");
     }
     
